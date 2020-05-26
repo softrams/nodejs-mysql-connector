@@ -2,87 +2,69 @@
 /* eslint-disable no-restricted-syntax */
 /* eslint-disable no-await-in-loop */
 /* eslint-disable no-else-return */
-const oracledb = require("oracledb");
+const oracledb = require("mysql");
 
-oracledb.outFormat = oracledb.OUT_FORMAT_OBJECT;
-
-// #region PRIVATE
 let pools = {};
 let config = {};
-
-createPool = async (poolName) => {
-  try {
-    const srcCfg = config.DATASOURCES[poolName];
-    if (srcCfg) {
-      pools[poolName] = await oracledb.createPool({
-        poolAlias: poolName,
-        user: srcCfg.DB_USER,
-        password: srcCfg.DB_PASSWORD,
-        connectString: `${srcCfg.DB_HOST}:${srcCfg.DB_PORT}/${srcCfg.DB_DATABASE}`,
-      });
-      console.debug(`Oracle Adapter: Pool ${poolName} created`);
-      return true;
-    } else {
-      console.error(`Oracle Adapter: Missing configuration for ${poolName}`);
-      return false;
-    }
-  } catch (err) {
-    console.error("Oracle Adapter: Error while closing connection", err);
-    return false;
-  }
-};
-
-connect = async (poolName) => {
-  try {
-    if (!pools[poolName]) {
-      await this.createPool(poolName);
-    }
-    const connection = await oracledb.getConnection(poolName);
-    console.info(
-      `Oracle Adapter: Successfully retrieved a connection from ${poolName} pool`
-    );
-    return connection;
-  } catch (err) {
-    console.error("Oracle Adapter: Error while retrieving a connection", err);
-    throw new Error(err.message);
-  }
-};
-
-close = async (conn) => {
-  if (conn) {
-    try {
-      await conn.close();
-      console.info("Oracle Adapter: DB connection returned to pool");
-      return true;
-    } catch (err) {
-      console.error("Oracle Adapter: Error while closing connection", err);
-      return false;
-    }
-  } else {
-    return true;
-  }
-};
-
-closePool = async (poolAlias) => {
-  try {
-    await oracledb.getPool(poolAlias).close(10);
-    console.info(`Oracle Adapter: Pool ${poolAlias} closed`);
-    return true;
-  } catch (err) {
-    console.error("Oracle Adapter: Error while closing connection", err);
-    return false;
-  }
-};
-
-// #endregion
-
-// #region PUBLIC
 
 exports.init = async (cfg) => {
   config = cfg;
 };
 
-exports.execute = async (srcName, query, params = {}, options = {}) => {
+exports.createPool = async (poolName) => {
+  try {
+    const srcCfg = config.DATASOURCES[poolName];
+    if (srcCfg) {
+      pools[poolName] = mysql.createPool({
+        connectionLimit: 5,
+        host: srcCfg.DB_HOST,
+        user: srcCfg.DB_USER,
+        password: srcCfg.DB_PASSWORD,
+        database: srcCfg.DB_DATABASE,
+        port: srcCfg.PORT,
+      });
+      console.debug(`MySQL Adapter: Pool ${poolName} created`);
+      return true;
+    } else {
+      console.error(`MySQL Adapter: Missing configuration for ${poolName}`);
+      return false;
+    }
+  } catch (err) {
+    console.error("MySQL Adapter: Error while closing connection", err);
+    return false;
+  }
+};
+
+exports.connect = async (poolName) => {
+  try {
+    if (!pools[poolName]) {
+      await this.createPool(poolName);
+    }
+    return pools[poolName];
+  } catch (err) {
+    console.error("MySQL Adapter: Error while retrieving a connection", err);
+    throw new Error(err.message);
+  }
+};
+
+this.query = async (conn, query, params) => {
+  return new Promise((resolve, reject) => {
+    try {
+      conn.query(query, params, (error, results) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(results);
+        }
+      });
+    } catch (err) {
+      console.error("MySQL Adapter:  Failure in query: ", err);
+      reject(err);
+    }
+  });
+};
+
+exports.execute = async (srcName, query, params = {}) => {
   try {
     console.debug(query);
     if (params) {
@@ -93,22 +75,21 @@ exports.execute = async (srcName, query, params = {}, options = {}) => {
     const conn = await this.connect(srcName);
 
     console.debug(
-      `Oracle Adapter: Connection secured: ${process.hrtime(start)[0]}s ${
+      `MySQL Adapter: Connection secured: ${process.hrtime(start)[0]}s ${
         process.hrtime(start)[1] / 1000000
       }ms`
     );
-    const result = await conn.execute(query, params, options);
+    const results = await this.query(conn, query, params);
 
     console.debug(
-      `Oracle Adapter: Query executed: ${process.hrtime(start)[0]}s ${
+      `MySQL Adapter: Query executed: ${process.hrtime(start)[0]}s ${
         process.hrtime(start)[1] / 1000000
       }ms`
     );
 
-    await conn.close();
-    return result.rows;
+    return results;
   } catch (err) {
-    console.error("Oracle Adapter: Error while executing query", err);
+    console.error("MySQL Adapter: Error while executing query", err);
     throw new Error(err.message);
   }
 };
@@ -118,14 +99,35 @@ exports.closeAllPools = async () => {
     const tempPools = pools;
     pools = {};
     for (const poolAlias of Object.keys(tempPools)) {
-      await oracledb.getPool(poolAlias).close(10);
-      console.info(`Oracle Adapter: Pool ${poolAlias} closed`);
+      await this.closePool(poolAlias);
+      console.debug(`MySQL Adapter: Pool ${poolAlias} closed`);
     }
     return true;
   } catch (err) {
-    console.error("Oracle Adapter: Error while closing connection", err);
+    console.error("MySQL Adapter: Error while closing connection", err);
     return false;
   }
 };
 
-// #endregion
+exports.closePool = async (poolAlias) => {
+  try {
+    if (pools[poolAlias]) {
+      const poolConn = pools[poolAlias];
+      delete pools[poolAlias];
+      poolConn.end((err) => {
+        if (err) {
+          console.error(
+            `Error while closing connection pool ${poolAlias}`,
+            err
+          );
+        }
+      });
+      return true;
+    } else {
+      return true;
+    }
+  } catch (err) {
+    console.error("MySQL Adapter: Error while closing connection", err);
+    return false;
+  }
+};

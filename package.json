@@ -1,30 +1,30 @@
 {
-  "name": "@softrams/nodejs-oracle-connector",
+  "name": "@softrams/nodejs-mysql-connector",
   "version": "0.0.1",
-  "description": "Database connector wrapper to work with Oracle database from nodejs applications",
+  "description": "Database connector wrapper to work with MySQL database from nodejs applications",
   "main": "index.js",
   "scripts": {
     "test": "yarn test"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/softrams/nodejs-oracle-connector.git"
+    "url": "git+https://github.com/softrams/nodejs-mysql-connector.git"
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com/"
   },
   "keywords": [
     "Nodejs",
-    "Oracle",
+    "MySQL",
     "Database"
   ],
   "author": "Murali Mallina (murali@softrams.com)",
   "license": "UNLICENSED",
   "bugs": {
-    "url": "https://github.com/softrams/nodejs-oracle-connector/issues"
+    "url": "https://github.com/softrams/nodejs-mysql-connector/issues"
   },
-  "homepage": "https://github.com/softrams/nodejs-oracle-connector#readme",
+  "homepage": "https://github.com/softrams/nodejs-mysql-connector#readme",
   "dependencies": {
-    "oracledb": "^4.2.0"
+    "mysql": "^2.18.1"
   }
 }
