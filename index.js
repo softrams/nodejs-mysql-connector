@@ -2,7 +2,7 @@
 /* eslint-disable no-restricted-syntax */
 /* eslint-disable no-await-in-loop */
 /* eslint-disable no-else-return */
-const oracledb = require("mysql");
+const mysql = require("mysql");
 
 let pools = {};
 let config = {};
