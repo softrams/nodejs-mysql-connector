@@ -16,7 +16,7 @@ exports.createPool = async (poolName, allowMultiStatements = false) => {
     const srcCfg = config.DATASOURCES[poolName];
     if (srcCfg) {
       pools[poolName] = mysql.createPool({
-        connectionLimit: 5,
+        connectionLimit: srcCfg.DB_CONNECTION_LIMIT || 5,
         host: srcCfg.DB_HOST,
         user: srcCfg.DB_USER,
         password: srcCfg.DB_PASSWORD,
