@@ -11,7 +11,7 @@ exports.init = async (cfg) => {
   config = cfg;
 };
 
-exports.createPool = async (poolName, allowMultiStatements = false) => {
+exports.createPool = async (poolName) => {
   try {
     const srcCfg = config.DATASOURCES[poolName];
     if (srcCfg) {
@@ -22,7 +22,7 @@ exports.createPool = async (poolName, allowMultiStatements = false) => {
         password: srcCfg.DB_PASSWORD,
         database: srcCfg.DB_DATABASE,
         port: srcCfg.PORT,
-        multipleStatements: allowMultiStatements,
+        multipleStatements: srcCfg.ALLOW_MULTI_STATEMENTS || false,
       });
       console.debug(`MySQL Adapter: Pool ${poolName} created`);
       return true;
@@ -36,10 +36,10 @@ exports.createPool = async (poolName, allowMultiStatements = false) => {
   }
 };
 
-exports.connect = async (poolName, allowMultiStatements) => {
+exports.connect = async (poolName) => {
   try {
     if (!pools[poolName]) {
-      await this.createPool(poolName, allowMultiStatements);
+      await this.createPool(poolName);
     }
     return pools[poolName];
   } catch (err) {
