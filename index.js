@@ -97,10 +97,9 @@ exports.execute = async (srcName, query, params = {}) => {
 
 exports.closeAllPools = async () => {
   try {
-    const tempPools = pools;
-    pools = {};
-    for (const poolAlias of Object.keys(tempPools)) {
+    for (const poolAlias of Object.keys(pools)) {
       await this.closePool(poolAlias);
+      delete pools[poolAlias];
       console.debug(`MySQL Adapter: Pool ${poolAlias} closed`);
     }
     return true;
@@ -115,7 +114,7 @@ exports.closePool = async (poolAlias) => {
     if (pools[poolAlias]) {
       const poolConn = pools[poolAlias];
       delete pools[poolAlias];
-      poolConn.end((err) => {
+      await poolConn.end((err) => {
         if (err) {
           console.error(
             `Error while closing connection pool ${poolAlias}`,
