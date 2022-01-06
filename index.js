@@ -23,6 +23,7 @@ exports.createPool = async (poolName) => {
         database: srcCfg.DB_DATABASE,
         port: srcCfg.PORT,
         multipleStatements: srcCfg.ALLOW_MULTI_STATEMENTS || false,
+        timezone: srcCfg.TIMEZONE || 'local',
       });
       console.debug(`MySQL Adapter: Pool ${poolName} created`);
       return true;
