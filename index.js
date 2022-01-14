@@ -3,6 +3,7 @@
 /* eslint-disable no-await-in-loop */
 /* eslint-disable no-else-return */
 const mysql = require("mysql");
+const fs = require('fs');
 
 let pools = {};
 let config = {};
