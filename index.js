@@ -30,9 +30,7 @@ exports.createPool = async (poolName) => {
       if (srcCfg.SSL) {
         const sslConfig = {};
 
-        if (srcCfg.SSL.USE_AWS_CERT) {
-          sslConfig.ca = fs.readFileSync(__dirname + '/global-bundle.pem', 'utf8');
-        } else if (srcCfg.SSL.CUSTOM_CERT) {
+        if (srcCfg.SSL.CUSTOM_CERT) {
           sslConfig.ca = srcCfg.SSL.CUSTOM_CERT;
         } else {
           sslConfig.rejectUnauthorized = srcCfg.SSL.hasOwnProperty('REJECT_UNAUTHORIZED') ? srcCfg.SSL.REJECT_UNAUTHORIZED : true;
