@@ -3,6 +3,7 @@
 /* eslint-disable no-await-in-loop */
 /* eslint-disable no-else-return */
 const mysql = require("mysql");
+const fs = require('fs');
 
 let pools = {};
 let config = {};
@@ -15,7 +16,7 @@ exports.createPool = async (poolName) => {
   try {
     const srcCfg = config.DATASOURCES[poolName];
     if (srcCfg) {
-      pools[poolName] = mysql.createPool({
+      const options = {
         connectionLimit: srcCfg.DB_CONNECTION_LIMIT || 5,
         host: srcCfg.DB_HOST,
         user: srcCfg.DB_USER,
@@ -24,7 +25,21 @@ exports.createPool = async (poolName) => {
         port: srcCfg.PORT,
         multipleStatements: srcCfg.ALLOW_MULTI_STATEMENTS || false,
         timezone: srcCfg.TIMEZONE || 'local',
-      });
+      };
+
+      if (srcCfg.SSL) {
+        const sslConfig = {};
+
+        if (srcCfg.SSL.CUSTOM_CERT) {
+          sslConfig.ca = srcCfg.SSL.CUSTOM_CERT;
+        } else {
+          sslConfig.rejectUnauthorized = srcCfg.SSL.hasOwnProperty('REJECT_UNAUTHORIZED') ? srcCfg.SSL.REJECT_UNAUTHORIZED : true;
+        }
+
+        options.ssl = sslConfig;
+      }
+
+      pools[poolName] = mysql.createPool(options);
       console.debug(`MySQL Adapter: Pool ${poolName} created`);
       return true;
     } else {
