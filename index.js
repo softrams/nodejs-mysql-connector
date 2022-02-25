@@ -70,6 +70,7 @@ this.query = async (conn, query, params) => {
     try {
       conn.query(query, params, (error, results) => {
         if (error) {
+          console.error("MySQL Adapter:  Failure in query: ", error);    
           this.handleError(reject, error);
         } else {
           resolve(results);
