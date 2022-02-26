@@ -7,6 +7,7 @@ const fs = require('fs');
 
 let pools = {};
 let config = {};
+const genericError = 'An error occurred communicating with the database.';
 
 exports.init = async (cfg) => {
   config = cfg;
@@ -69,16 +70,22 @@ this.query = async (conn, query, params) => {
     try {
       conn.query(query, params, (error, results) => {
         if (error) {
-          reject(error);
+          console.error("MySQL Adapter:  Failure in query: ", error);    
+          this.handleError(reject, error);
         } else {
           resolve(results);
         }
       });
     } catch (err) {
       console.error("MySQL Adapter:  Failure in query: ", err);
-      reject(err);
+      this.handleError(reject, err);
     }
   });
+};
+
+this.handleError = (reject, error) => {
+  const errorReturn = (config && config.HIDE_DB_ERRORS) ? new Error(genericError) : error;
+  reject(errorReturn);
 };
 
 exports.execute = async (srcName, query, params = {}) => {
