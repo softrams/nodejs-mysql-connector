@@ -26,6 +26,8 @@ exports.createPool = async (poolName) => {
         port: srcCfg.PORT,
         multipleStatements: srcCfg.ALLOW_MULTI_STATEMENTS || false,
         timezone: srcCfg.TIMEZONE || 'local',
+        typeCast: srcCfg.TYPE_CAST || true,
+        dateStrings: srcCfg.DATE_STRINGS || false
       };
 
       if (srcCfg.SSL) {
