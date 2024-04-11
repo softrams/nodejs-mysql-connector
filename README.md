@@ -39,7 +39,7 @@ Then, write as many queries as you want, and when you are done, you can commit t
 someMethod = async () => {
     const pool = await dataSource.connect(DATABASE_POOL);
     const transactionConnection = await dataSource.transactionConnection(pool);
-    transactionConnection.beginTransaction();
+    await transactionConnection.beginTransaction();
 
     try {
       await transactionConnection.execute(SOME_QUERY, []);
