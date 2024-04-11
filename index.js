@@ -156,3 +156,88 @@ exports.closePool = async (poolAlias) => {
     return false;
   }
 };
+
+exports.transactionConnection = (pool) => {
+  return new Promise((resolve, reject) => {
+      pool.getConnection((err, connection) => {
+          let query;
+          if (err) reject(err);
+          if (connection) {
+              console.log("MySQL Pool connected with threadId " + connection.threadId);
+               query = (sql, params) => {
+                  return new Promise((resolve, reject) => {
+                      connection.query(sql, params, (err, result) => {
+                          console.debug("Executing query " + sql);
+                          if (params) {
+                              console.debug(JSON.stringify(params));
+                            }
+                          if (err) reject(err);
+                          resolve(result);
+                      });
+                  });
+              };
+          }
+          
+          const TRANSACTIONS = Object.freeze({
+            START: 'START TRANSACTION',
+            COMMIT: 'COMMIT',
+            ROLLBACK: 'ROLLBACK'
+          });
+
+          const release = () => {
+              return new Promise((resolve, reject) => {
+                  if (err) reject(err);
+                  if (connection) {
+                      console.log("MySQL pool released the thread " + connection.threadId);
+                      resolve(connection.release());
+                  }
+              });
+          };
+
+          const beginTransaction = () => {
+              return new Promise((resolve, reject) => {
+                  if (err) reject(err);
+                  if (connection) {
+                      console.log("MySQL beginning transaction with connection thread: " + connection.threadId);
+                      resolve(connection.query(TRANSACTIONS.START));
+                  }
+              });
+          };
+
+          const commitTransaction = () => {
+              return new Promise((resolve, reject) => {
+                  if (err) reject(err);
+                  if (connection) {
+                      console.log("MySQL commiting transaction for connection thread: " + connection.threadId);
+                      resolve(connection.query(TRANSACTIONS.COMMIT));
+                  }
+              });
+          };
+
+          const rollbackTransaction = () => {
+              return new Promise((resolve, reject) => {
+                  if (err) reject(err);
+                  if (connection) {
+                      console.log("MySQL rolling back the transaction of connection thread: " + connection.threadId);
+                      resolve(connection.query(TRANSACTIONS.ROLLBACK));
+                  }
+              });
+          };
+
+          const execute = (sql, params) => {
+              return new Promise((resolve, reject) => {
+                  connection.query(sql, params, (err, result) => {
+                      console.debug("Executing query " + sql);
+                      if (params) {
+                          console.debug(JSON.stringify(params));
+                        }
+                      if (err) reject(err);
+                      resolve(result);
+                  });
+              });
+          }
+
+          resolve({ query, execute, release, beginTransaction, commitTransaction, rollbackTransaction});
+      });
+  });
+};
