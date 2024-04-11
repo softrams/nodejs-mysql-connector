@@ -157,79 +157,87 @@ exports.closePool = async (poolAlias) => {
   }
 };
 
-exports.beginTransaction = async (poolName) => {
-  try {
-    const pool = await this.connect(poolName);
-    return new Promise((resolve, reject) => {
+exports.transactionConnection = (pool) => {
+  return new Promise((resolve, reject) => {
       pool.getConnection((err, connection) => {
-        if (err) {
-          console.error("MySQL Adapter: Error while getting connection for transaction", err);
-          reject(err);
-        } else {
-          connection.beginTransaction((err) => {
-            if (err) {
-              console.error("MySQL Adapter: Error while beginning transaction", err);
-              reject(err);
-            } else {
-              resolve(connection);
-            }
+          let query;
+          if (err) reject(err);
+          if (connection) {
+              console.log("MySQL Pool connected with threadId " + connection.threadId);
+               query = (sql, params) => {
+                  return new Promise((resolve, reject) => {
+                      connection.query(sql, params, (err, result) => {
+                          console.debug("Executing query " + sql);
+                          if (params) {
+                              console.debug(JSON.stringify(params));
+                            }
+                          if (err) reject(err);
+                          resolve(result);
+                      });
+                  });
+              };
+          }
+          
+          const TRANSACTIONS = Object.freeze({
+            START: 'START TRANSACTION',
+            COMMIT: 'COMMIT',
+            ROLLBACK: 'ROLLBACK'
           });
-        }
+
+          const release = () => {
+              return new Promise((resolve, reject) => {
+                  if (err) reject(err);
+                  if (connection) {
+                      console.log("MySQL pool released the thread " + connection.threadId);
+                      resolve(connection.release());
+                  }
+              });
+          };
+
+          const beginTransaction = () => {
+              return new Promise((resolve, reject) => {
+                  if (err) reject(err);
+                  if (connection) {
+                      console.log("MySQL beginning transaction with connection thread: " + connection.threadId);
+                      resolve(connection.query(TRANSACTIONS.START));
+                  }
+              });
+          };
+
+          const commitTransaction = () => {
+              return new Promise((resolve, reject) => {
+                  if (err) reject(err);
+                  if (connection) {
+                      console.log("MySQL commiting transaction for connection thread: " + connection.threadId);
+                      resolve(connection.query(TRANSACTIONS.COMMIT));
+                  }
+              });
+          };
+
+          const rollbackTransaction = () => {
+              return new Promise((resolve, reject) => {
+                  if (err) reject(err);
+                  if (connection) {
+                      console.log("MySQL rolling back the transaction of connection thread: " + connection.threadId);
+                      resolve(connection.query(TRANSACTIONS.ROLLBACK));
+                  }
+              });
+          };
+
+          const execute = (sql, params) => {
+              return new Promise((resolve, reject) => {
+                  connection.query(sql, params, (err, result) => {
+                      console.debug("Executing query " + sql);
+                      if (params) {
+                          console.debug(JSON.stringify(params));
+                        }
+                      if (err) reject(err);
+                      resolve(result);
+                  });
+              });
+          }
+
+          resolve({ query, execute, release, beginTransaction, commitTransaction, rollbackTransaction});
       });
-    });
-  } catch (err) {
-    console.error("MySQL Adapter: Error while beginning transaction", err);
-    throw new Error(err.message);
-  }
-};
-
-exports.executeWithinTransaction = async (connection, query, params = {}) => {
-  try {
-    console.debug(query);
-    if (params) {
-      console.debug(JSON.stringify(params));
-    }
-
-    const start = process.hrtime();
-    const results = await this.query(connection, query, params);
-
-    console.debug(
-      `MySQL Adapter: Query executed: ${process.hrtime(start)[0]}s ${
-        process.hrtime(start)[1] / 1000000
-      }ms`
-    );
-
-    return results;
-  } catch (err) {
-    console.error("MySQL Adapter: Error while executing query", err);
-    throw new Error(err.message);
-  }
-};
-
-exports.commitTransaction = (connection) => {
-  return new Promise((resolve, reject) => {
-    connection.commit((err) => {
-      if (err) {
-        console.error("MySQL Adapter: Error while committing transaction", err);
-        reject(err);
-      } else {
-        connection.release();
-        resolve(true);
-      }
-    });
-  });
-};
-
-exports.rollbackTransaction = (connection) => {
-  return new Promise((resolve, reject) => {
-    connection.rollback((err) => {
-      if (err) {
-        console.error("MySQL Adapter: Error while rolling back transaction", err);
-        reject(err);
-      } else {
-        connection.release();
-        resolve(true);
-      }
-    });
   });
 };
