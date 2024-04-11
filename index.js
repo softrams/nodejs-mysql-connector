@@ -156,3 +156,80 @@ exports.closePool = async (poolAlias) => {
     return false;
   }
 };
+
+exports.beginTransaction = async (poolName) => {
+  try {
+    const pool = await this.connect(poolName);
+    return new Promise((resolve, reject) => {
+      pool.getConnection((err, connection) => {
+        if (err) {
+          console.error("MySQL Adapter: Error while getting connection for transaction", err);
+          reject(err);
+        } else {
+          connection.beginTransaction((err) => {
+            if (err) {
+              console.error("MySQL Adapter: Error while beginning transaction", err);
+              reject(err);
+            } else {
+              resolve(connection);
+            }
+          });
+        }
+      });
+    });
+  } catch (err) {
+    console.error("MySQL Adapter: Error while beginning transaction", err);
+    throw new Error(err.message);
+  }
+};
+
+exports.executeWithinTransaction = async (connection, query, params = {}) => {
+  try {
+    console.debug(query);
+    if (params) {
+      console.debug(JSON.stringify(params));
+    }
+
+    const start = process.hrtime();
+    const results = await this.query(connection, query, params);
+
+    console.debug(
+      `MySQL Adapter: Query executed: ${process.hrtime(start)[0]}s ${
+        process.hrtime(start)[1] / 1000000
+      }ms`
+    );
+
+    return results;
+  } catch (err) {
+    console.error("MySQL Adapter: Error while executing query", err);
+    throw new Error(err.message);
+  }
+};
+
+exports.commitTransaction = (connection) => {
+  return new Promise((resolve, reject) => {
+    connection.commit((err) => {
+      if (err) {
+        console.error("MySQL Adapter: Error while committing transaction", err);
+        reject(err);
+      } else {
+        connection.release();
+        resolve(true);
+      }
+    });
+  });
+};
+
+exports.rollbackTransaction = (connection) => {
+  return new Promise((resolve, reject) => {
+    connection.rollback((err) => {
+      if (err) {
+        console.error("MySQL Adapter: Error while rolling back transaction", err);
+        reject(err);
+      } else {
+        connection.release();
+        resolve(true);
+      }
+    });
+  });
+};
