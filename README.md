@@ -26,13 +26,13 @@ SSL: {
 }
 ```
 
-# Data Typing Options
+## Data Typing Options
 
 This connector gives you a few options for configuring how data is returned from the connector. 'typeCast' defaults to true, and converts
 data from the database to its javascript equivalent. For example, it will convert DATETIME SQL objects to a DATE javascript type.
 You can also set 'dateStrings' which defaults to false. If you set it to true it will override typeCast and force date returns to be a string instead of a DATE type.
 
-# Working within a transaction
+## Working within a transaction
 As of version 0.1.0 you can utilize sql transactions. Simply call the transactionConnection method to get a transaction connection and then begin the transaction.
 Then, write as many queries as you want, and when you are done, you can commit the transaction and all of your queries will be saved to the database or you can roll back the transaction and nothing done while inside that transaction will be saved. Some pseudo-code for how you might do that is below:
 ```
